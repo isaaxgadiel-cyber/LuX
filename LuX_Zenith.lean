@@ -1,24 +1,84 @@
--- LuX-Zenith formal verification in Lean 4
--- Creado por Isaac, Panamá, 2025
+-- LuX-Zenith
+-- Núcleo ético determinista formalizado en Lean 4
+-- Primera formalización
+-- Isaac Gadiel, 2025
 
-import Mathlib.Logic.Basic
+/-
+  1. Dominio de salida
+-/
+inductive Verdict
+| SAFE
+| BLOCKED
+| UNCERTAIN
+deriving DecidableEq, Repr
 
-variable (t : String)
+/-
+  2. Señales éticas abstractas
+-/
+structure Signals :=
+(has_defect    : Bool)
+(has_exception : Bool)
+(has_universal : Bool)
+(has_modal     : Bool)
 
-def contains_defecto (t : String) : Prop := sorry  -- Definición simplificada
-def contains_universal (t : String) : Prop := sorry
-def contains_excepcion (t : String) : Prop := sorry
+/-
+  3. Función ética central
+-/
+def lux_reason (s : Signals) : Verdict :=
+  if s.has_modal then Verdict.UNCERTAIN
+  else if s.has_universal && s.has_defect then Verdict.BLOCKED
+  else if s.has_defect && s.has_exception then Verdict.SAFE
+  else if s.has_defect then Verdict.BLOCKED
+  else Verdict.SAFE
 
-theorem deontologia_absoluta :
-  contains_universal t ∧ contains_defecto t → reason t = "BLOQUEADO" := by
-  sorry
+/-
+  4. Totalidad: siempre hay un veredicto
+-/
+theorem lux_total (s : Signals) :
+  lux_reason s = Verdict.SAFE
+  ∨ lux_reason s = Verdict.BLOCKED
+  ∨ lux_reason s = Verdict.UNCERTAIN :=
+by
+  unfold lux_reason
+  by_cases hmodal : s.has_modal
+  · simp [hmodal]
+  · simp [hmodal]
 
-theorem utilitarismo_mayor :
-  contains_defecto t ∧ contains_excepcion t → reason t = "SEGURO" := by
-  sorry
+/-
+  5. Prioridad absoluta de modalidad
+-/
+theorem modal_has_priority (s : Signals) :
+  s.has_modal = true →
+  lux_reason s = Verdict.UNCERTAIN :=
+by
+  intro h
+  unfold lux_reason
+  simp [h]
 
-theorem defecto_sin_excepcion :
-  contains_defecto t ∧ ¬ contains_excepcion t → reason t = "BLOQUEADO" := by
-  sorry
+/-
+  6. Universal + defecto siempre bloquea
+-/
+theorem universal_defect_blocks (s : Signals) :
+  s.has_modal = false →
+  s.has_universal = true →
+  s.has_defect = true →
+  lux_reason s = Verdict.BLOCKED :=
+by
+  intro hmodal huniv hdef
+  unfold lux_reason
+  simp [hmodal, huniv, hdef]
 
--- Más teoremas pueden añadirse en futuras versiones
+/-
+  7. Defecto con excepción permite
+-/
+theorem defect_with_exception_allows (s : Signals) :
+  s.has_modal = false →
+  s.has_universal = false →
+  s.has_defect = true →
+  s.has_exception = true →
+  lux_reason s = Verdict.SAFE :=
+by
+  intro hmodal huniv hdef hex
+  unfold lux_reason
+  simp [hmodal, huniv, hdef, hex]
+
